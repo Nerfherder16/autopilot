@@ -1,3 +1,5 @@
 node_modules/
 .autopilot/
 *.bak
+.env
+.npmrc
