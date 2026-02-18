@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "TDD-driven autonomous build system for Claude Code (/plan, /build, /verify, /fix)",
   "bin": {
-    "claude-autopilot": "./bin/cli.js"
+    "claude-autopilot": "bin/cli.js"
   },
   "keywords": [
     "claude",
@@ -17,7 +17,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Nerfherder16/claude-autopilot.git"
+    "url": "git+https://github.com/Nerfherder16/claude-autopilot.git"
   },
   "engines": {
     "node": ">=18"
