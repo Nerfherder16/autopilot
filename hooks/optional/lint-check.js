@@ -103,9 +103,22 @@ function getAutopilotMode(filePath) {
   return "";
 }
 
-function run(cmd) {
+function findProjectRoot(filePath) {
+  let dir = path.dirname(filePath);
+  for (let i = 0; i < 10; i++) {
+    if (existsSync(path.join(dir, "package.json")) || existsSync(path.join(dir, "pyproject.toml"))) {
+      return dir;
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return path.dirname(filePath);
+}
+
+function run(cmd, opts = {}) {
   try {
-    execSync(cmd, { stdio: ["pipe", "pipe", "pipe"], timeout: 20000 });
+    execSync(cmd, { stdio: ["pipe", "pipe", "pipe"], timeout: 20000, ...opts });
     return { ok: true, output: "" };
   } catch (e) {
     return {
@@ -131,8 +144,15 @@ async function main() {
 
   if (!filePath) process.exit(0);
 
+  // In build/fix mode, the build loop handles linting — skip hook noise
+  const mode = getAutopilotMode(filePath);
+  if (mode === "build" || mode === "fix") process.exit(0);
+
   // Skip linting hook files themselves
   if (filePath.replace(/\\/g, "/").includes("/hooks/")) process.exit(0);
+
+  const projectRoot = findProjectRoot(filePath);
+  const cwdOpts = { cwd: projectRoot };
 
   if (filePath.endsWith(".py")) {
     const ruff = findRuff();
@@ -140,18 +160,18 @@ async function main() {
       process.exit(0);
     }
 
-    run(`"${ruff}" check --fix "${filePath}"`);
-    run(`"${ruff}" format "${filePath}"`);
-    const check = run(`"${ruff}" check "${filePath}"`);
+    run(`"${ruff}" check --fix "${filePath}"`, cwdOpts);
+    run(`"${ruff}" format "${filePath}"`, cwdOpts);
+    const check = run(`"${ruff}" check "${filePath}"`, cwdOpts);
     if (!check.ok) {
       process.stderr.write(`Lint errors in ${filePath}:\n${check.output}\n`);
       process.exit(2);
     }
   } else if (/\.(ts|tsx|js|jsx)$/.test(filePath)) {
-    run(`npx prettier --write "${filePath}"`);
-    const eslint = run(`npx eslint --fix "${filePath}"`);
+    run(`npx prettier --write "${filePath}"`, cwdOpts);
+    const eslint = run(`npx eslint --fix "${filePath}"`, cwdOpts);
     if (!eslint.ok && !eslint.output.includes("eslint.config")) {
-      const recheck = run(`npx eslint "${filePath}"`);
+      const recheck = run(`npx eslint "${filePath}"`, cwdOpts);
       if (!recheck.ok && !recheck.output.includes("eslint.config")) {
         process.stderr.write(
           `Lint errors in ${filePath}:\n${recheck.output}\n`,
@@ -176,19 +196,10 @@ async function main() {
       if (tsconfigFound) {
         const tsc = run(
           `npx tsc --noEmit --project "${path.join(tsconfigDir, "tsconfig.json")}"`,
+          { cwd: tsconfigDir },
         );
         if (!tsc.ok) {
-          const mode = getAutopilotMode(filePath);
-          if (mode === "build") {
-            process.stderr.write(
-              `Type errors (blocking in build mode):\n${tsc.output}\n`,
-            );
-            process.exit(2);
-          } else {
-            process.stderr.write(
-              `Type check warnings:\n${tsc.output}\n`,
-            );
-          }
+          process.stderr.write(`Type check warnings:\n${tsc.output}\n`);
         }
       }
     }

@@ -1,6 +1,6 @@
 {
   "name": "claude-autopilot",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "TDD-driven autonomous build system for Claude Code (/plan, /build, /verify, /fix)",
   "bin": {
     "claude-autopilot": "bin/cli.js"

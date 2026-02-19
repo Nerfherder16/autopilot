@@ -70,17 +70,19 @@ For each task in order:
 4. Set `progress.json` status to `COMPLETE`
 5. Log: `[timestamp] COMPLETE: All N tasks done`
 6. Set `.autopilot/mode` to empty string
-7. Push branch: `git push -u origin <branch>`
-8. Create PR (non-fatal if `gh` unavailable):
-   - Title: `autopilot: <project-name>`
-   - Body: spec Goal section + task list + test counts + coverage summary
-   - Use HEREDOC syntax for body
-   - Log: `[timestamp] PR_CREATED: <PR URL>`
-9. If Recall MCP is configured, store completion report (include PR URL if created):
+7. Check if a git remote is configured (`git remote -v`):
+   - **If remote exists**: Push branch (`git push -u origin <branch>`) and create PR:
+     - Title: `autopilot: <project-name>`
+     - Body: spec Goal section + task list + test counts + coverage summary
+     - Use HEREDOC syntax for body
+     - Log: `[timestamp] PR_CREATED: <PR URL>`
+     - Non-fatal if `gh` is unavailable or push fails
+   - **If no remote**: Skip push/PR. Log: `[timestamp] COMPLETE: No remote configured, skipping PR.`
+8. If Recall MCP is configured, store completion report (include PR URL if created):
    - domain: "autopilot"
    - tags: ["autopilot:complete", "project:<name>"]
    - importance: 0.8
-10. Tell user: "Build complete. PR created: <URL>. Run `/verify` for independent review."
+9. Tell user: "Build complete. <PR URL if created, otherwise 'No remote — skipping PR.'>. Run `/verify` for independent review."
 
 ## Handoff (if context limit approaching)
 

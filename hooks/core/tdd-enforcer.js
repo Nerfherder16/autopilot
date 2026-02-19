@@ -150,6 +150,12 @@ function findTestFile(filePath) {
         candidates.push(path.join(testsDir, `${base}.spec${ext}`));
         break;
       }
+      // Check __tests__/ at each walk-up level (React convention)
+      const dunderDir = path.join(searchDir, "__tests__");
+      if (searchDir !== dir && existsSync(dunderDir)) {
+        candidates.push(path.join(dunderDir, `${base}.test${ext}`));
+        candidates.push(path.join(dunderDir, `${base}.spec${ext}`));
+      }
       const parent = path.dirname(searchDir);
       if (parent === searchDir) break;
       searchDir = parent;
@@ -205,6 +211,10 @@ async function main() {
   if (isExempt(filePath)) process.exit(0);
   if (isTestFile(filePath)) process.exit(0);
   if (filePath.replace(/\\/g, "/").includes("/hooks/")) process.exit(0);
+
+  // In build/fix mode, the build loop handles testing — skip hook noise
+  const earlyMode = getAutopilotMode(filePath);
+  if (earlyMode === "build" || earlyMode === "fix") process.exit(0);
 
   const testFile = findTestFile(filePath);
 
